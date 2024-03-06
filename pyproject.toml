@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "mdwarf-contin"
+version = "0.1.0"
+description = ""
+authors = ["imedan <ilija.medan@vanderbilt.edu>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
