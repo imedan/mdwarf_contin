@@ -188,8 +188,12 @@ class ContinuumNormalize(object):
     def __init__(self, loglam: np.ndarray, flux: np.ndarray, size: int = 7,
                  alpha: float = 1 / 0.05, degree: int = 2, kernel: Callable = rbf.tricube,
                  radius: float = 0.2):
-        self.loglam = loglam
-        self.flux = flux
+        try:
+            self.loglam = np.array(loglam)
+            self.flux = np.array(flux)
+        except:
+            raise ValueError("loglam and flux must be 1d arrays")
+         
         self.size = size
         self.alpha = alpha
         self.degree = degree
