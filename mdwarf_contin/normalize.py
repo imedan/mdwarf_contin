@@ -2,7 +2,7 @@ from typing import Union, Tuple, Callable
 import numpy as np
 from alpha_shapes import Alpha_Shaper, plot_alpha_shape
 from shapely.geometry.polygon import Polygon
-from shapely import LineString, intersection
+from shapely import LineString, intersection, MultiLineString
 from localreg import *
 
 
@@ -112,8 +112,18 @@ def max_intersect(alpha_shape: Polygon) -> Tuple[np.ndarray, np.ndarray]:
     ymax: np.array
         y coordinates of the alpha shape that intersect the maximum
     """
-    xa = alpha_shape.boundary.xy[0]
-    ya = alpha_shape.boundary.xy[1]
+    
+    if type(alpha_shape.boundary)==LineString:
+        xa = alpha_shape.boundary.xy[0]
+        ya = alpha_shape.boundary.xy[1]
+    elif type(alpha_shape.boundary)==MultiLineString:
+        xa = np.array([])
+        ya = np.array([])
+        for foo in alpha_shape.boundary.geoms:
+            xa = np.append(xa, np.array(foo.xy[0]))
+            ya = np.append(ya, np.array(foo.xy[1]))
+    else:
+        raise ValueError("Help! Something has gone terribly wrong with the alpha_shape!")
     xmax = []
     ymax = []
     for i in range(len(xa)):
