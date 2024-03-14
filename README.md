@@ -17,4 +17,4 @@ poetry install
 
 ## Usage
 
-The notebook in [`tests/example_usage.ipynb`](https://github.com/imedan/mdwarf_contin/blob/main/tests/example_usage.ipynb) provides an overview on the to use the code for doing normalization.
+The notebook in [`tests/example_usage.ipynb`](https://github.com/imedan/mdwarf_contin/blob/main/tests/example_usage.ipynb) provides an overview on how to use the code for doing normalization.
