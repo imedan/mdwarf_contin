@@ -72,7 +72,7 @@ def un_normalize_data(x: np.ndarray, xn: np.ndarray) -> Tuple[np.ndarray, np.nda
     Parameters
     ---------
     x: np.array
-        data
+        the original data used for the normalization
 
     xn: np.array
         data normalized
