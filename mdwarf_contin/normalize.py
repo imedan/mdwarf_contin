@@ -65,6 +65,27 @@ def normalize_data(x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray
     return xn, yn
 
 
+def un_normalize_data(x: np.ndarray, xn: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Undo the normalize to the data
+
+    Parameters
+    ---------
+    x: np.array
+        data
+
+    xn: np.array
+        data normalized
+
+    Returns
+    -------
+    x0: np.array
+        data unnormalized
+    """
+    x0 = xn * (np.nanmax(x) - np.nanmin(x)) + np.nanmin(x)
+    return x0
+
+
 def calculate_alpha_shape(x: np.ndarray, y: np.ndarray,
                           alpha: float = 1 / 0.05) -> Polygon:
     """
