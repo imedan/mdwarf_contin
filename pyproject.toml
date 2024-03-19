@@ -14,6 +14,7 @@ localreg = "^0.5.0"
 astropy = "^6.0.0"
 matplotlib = "^3.8.3"
 extinction = "^0.4.6"
+specutils = "^1.13.0"
 
 
 [build-system]
