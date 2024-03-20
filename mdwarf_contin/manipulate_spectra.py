@@ -119,10 +119,10 @@ def manipulate_model_spectra(loglam_sdss: np.ndarray,
     P = np.array([1.5402553, -0.0009273592438195921, 0.27507633])  # fit to 1 kpc M dwarfs
     av_rand = ss.lognorm.rvs(*P, size=size)
     for i in range(size):
-        flux_rand[i, :] = add_reddening(loglam_sdss, flux_rand[i, :], av_rand[i])
+        flux_rand[i, :] = add_reddening(loglam_sdss, flux_smooth_down, av_rand[i])
 
     # add the instrument response
     for i in range(size):
-        flux_rand[i, :] = random_response(loglam_sdss, flux_smooth_down)
+        flux_rand[i, :] = random_response(loglam_sdss, flux_rand[i, :])
 
     return flux_rand, flux_smooth_down
