@@ -1,3 +1,4 @@
+from typing import Tuple
 from extinction import ccm89, apply
 import numpy as np
 import astropy.units as u
@@ -15,7 +16,8 @@ with open(open_binary('mdwarf_contin.response_data', 'pca_diff_spectra.pkl').nam
     X_projected = res[1]
 
 
-def add_reddening(loglam: np.ndarray, flux: np.ndarray, av: float):
+def add_reddening(loglam: np.ndarray, flux: np.ndarray,
+                  av: float) -> np.ndarray:
     """
     add reddening to a spectrum
 
@@ -41,7 +43,7 @@ def add_reddening(loglam: np.ndarray, flux: np.ndarray, av: float):
     return flux_red
 
 
-def random_response(loglam: np.ndarray, flux: np.ndarray):
+def random_response(loglam: np.ndarray, flux: np.ndarray) -> np.ndarray:
     """
     Add random response to flux based on eigen vectors from
     difference spectra
@@ -74,7 +76,7 @@ def random_response(loglam: np.ndarray, flux: np.ndarray):
 def manipulate_model_spectra(loglam_sdss: np.ndarray,
                              loglam_model: np.ndarray,
                              flux_model: np.ndarray,
-                             size: int):
+                             size: int) -> Tuple[np.ndarray, np.ndarray]:
     """
     Manipulate a model spectrum by by smoothing, downsampling
     adding reddening and instrument response
