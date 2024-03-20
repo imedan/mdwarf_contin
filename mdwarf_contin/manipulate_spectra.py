@@ -99,6 +99,10 @@ def manipulate_model_spectra(loglam_sdss: np.ndarray,
         Flux of the random manipulated model spectra.
         Flux is evaluated at loglam_sdss. Size of array will be
         (size, len(loglam_sdss)).
+
+    flux_smooth_down: np.array
+        the model flux that has been smoothed and downsampled.
+        Noisy spectrum should be compared to this.
     """
     # smooth and downsample the spectrum
     flux_smooth = gaussian_filter1d(flux_model,
@@ -119,4 +123,4 @@ def manipulate_model_spectra(loglam_sdss: np.ndarray,
     for i in range(size):
         flux_rand[i, :] = random_response(loglam_sdss, flux_smooth_down)
 
-    return flux_rand
+    return flux_rand, flux_smooth_down
