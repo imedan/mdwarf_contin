@@ -3,7 +3,7 @@ import numpy as np
 from alpha_shapes import Alpha_Shaper, plot_alpha_shape
 from shapely.geometry.polygon import Polygon
 from shapely import LineString, intersection, MultiLineString
-from localreg import *
+from localreg.rbf import tricube
 
 
 def median_filt(x: np.ndarray, y: np.ndarray,
@@ -161,6 +161,71 @@ def max_intersect(alpha_shape: Polygon) -> Tuple[np.ndarray, np.ndarray]:
             pass
     return np.array(xmax), np.array(ymax)
 
+
+def localreg(x: np.ndarray, y: np.ndarray,
+             x0: np.ndarray = None, degree: int = 2,
+             kernel: Callable = tricube, radius: float = 1.) -> np.ndarray:
+    """
+    rewrote localreg (https://github.com/sigvaldm/localreg/tree/master) function
+    to improve speed
+
+    Parameters
+    ----------
+    x: np.array
+        x data for the fitting
+
+    y: np.array
+        y data for the fitting
+
+    x0: np.array
+        where the fit will be evalulated at for the output
+
+    degree: int
+        degree of the polynomial for the fit
+
+    kernel: Callable
+        kernel to apply to the weights
+
+    radius: float
+        value used for setting the weights at each point in x0.
+        Acts as a smoothing factor
+
+    Returns
+    -------
+    y0: np.array
+        output of the regression at x0
+    """
+    if x0 is None:
+        x0 = x
+
+    if x.ndim == 1:
+        x = x[:, np.newaxis]  # Reshape to 2D if it's 1D
+    if x0.ndim == 1:
+        x0 = x0[:, np.newaxis]  # Reshape to 2D if it's 1D
+
+    n_samples, n_indeps = x.shape
+    n_samples_out, _ = x0.shape
+
+    y0 = np.zeros(n_samples_out)
+
+    powers = np.arange(degree + 1)
+    B = np.stack(np.meshgrid(*([powers] * n_indeps), indexing='ij'), axis=-1)
+    
+    X = np.prod(np.power(x[:, :, np.newaxis], B.T), axis=1)
+    X0 = np.prod(np.power(x0[:, :, np.newaxis], B.T), axis=1)
+
+    weights = kernel(np.linalg.norm(x[:, np.newaxis] - x0, axis=-1) / 0.5)
+    s_weights = np.sqrt(weights)
+    for i, xi in enumerate(x0):
+        lhs = X * s_weights[:, i][:, np.newaxis]
+        rhs = y * s_weights[:, i]
+    
+        # Compute pseudo-inverse directly instead of using lstsq
+        beta = np.linalg.pinv(lhs) @ rhs
+        y0[i] = X0[i, :] @ beta
+    return y0
+
+
 class ContinuumNormalize(object):
     """
     Continuum normalize a spectrum using alpha hulls
@@ -217,7 +282,7 @@ class ContinuumNormalize(object):
         with local polynomial regression
     """
     def __init__(self, loglam: np.ndarray, flux: np.ndarray, size: int = 7,
-                 alpha: float = 1 / 0.05, degree: int = 2, kernel: Callable = rbf.tricube,
+                 alpha: float = 1 / 0.05, degree: int = 2, kernel: Callable = tricube,
                  radius: float = 0.2):
         try:
             self.loglam = np.array(loglam)
