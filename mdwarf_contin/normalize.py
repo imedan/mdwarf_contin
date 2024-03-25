@@ -216,12 +216,18 @@ def localreg(x: np.ndarray, y: np.ndarray,
 
     weights = kernel(np.linalg.norm(x[:, np.newaxis] - x0, axis=-1) / 0.5)
     s_weights = np.sqrt(weights)
+    lhs0 = X[:, :, np.newaxis] * s_weights[:, np.newaxis, :]
+    rhs = y[:, np.newaxis] * s_weights
+
+    # need to do this to reshape things
+    lhs = np.zeros((n_samples_out, n_samples, degree + 1))
     for i, xi in enumerate(x0):
-        lhs = X * s_weights[:, i][:, np.newaxis]
-        rhs = y * s_weights[:, i]
-    
-        # Compute pseudo-inverse directly instead of using lstsq
-        beta = np.linalg.pinv(lhs) @ rhs
+        lhs[i, :, :] = lhs0[:, :, i]
+
+    # Compute pseudo-inverse directly instead of using lstsq
+    lhs_inv = np.linalg.pinv(lhs)
+    for i, xi in enumerate(x0):
+        beta = lhs_inv[i, :, :] @ rhs[:, i]
         y0[i] = X0[i, :] @ beta
     return y0
 
