@@ -73,6 +73,28 @@ def random_response(loglam: np.ndarray, flux: np.ndarray) -> np.ndarray:
     return flux_resp
 
 
+def add_noise(flux: np.ndarray, snr: float) -> np.ndarray:
+    """
+    Add nosie to signal
+
+    Parameters
+    ----------
+    flux: np.array
+        Flux of the spectrum
+
+    snr: float
+        desired SNR for output
+
+    Return
+    ------
+    flux_noise: np.array
+        flux values with noise added
+    """
+    flux_noise = np.random.normal(flux, flux / snr)
+    return flux_noise
+
+
+
 def manipulate_model_spectra(loglam_sdss: np.ndarray,
                              loglam_model: np.ndarray,
                              flux_model: np.ndarray,
@@ -120,6 +142,12 @@ def manipulate_model_spectra(loglam_sdss: np.ndarray,
     av_rand = ss.lognorm.rvs(*P, size=size)
     for i in range(size):
         flux_rand[i, :] = add_reddening(loglam_sdss, flux_smooth_down, av_rand[i])
+
+    # add noise to the spectrum
+    # assume some uniform distriubtion for SNR
+    snr = np.random.uniform(low=5, high=60, size=size)
+    for i in range(size):
+        flux_rand[i, :] = random_response(flux_rand[i, :], snr[i])
 
     # add the instrument response
     for i in range(size):
