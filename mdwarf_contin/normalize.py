@@ -214,7 +214,7 @@ def localreg(x: np.ndarray, y: np.ndarray,
     X = np.prod(np.power(x[:, :, np.newaxis], B.T), axis=1)
     X0 = np.prod(np.power(x0[:, :, np.newaxis], B.T), axis=1)
 
-    weights = kernel(np.linalg.norm(x[:, np.newaxis] - x0, axis=-1) / 0.5)
+    weights = kernel(np.linalg.norm(x[:, np.newaxis] - x0, axis=-1) / radius)
     s_weights = np.sqrt(weights)
     lhs0 = X[:, :, np.newaxis] * s_weights[:, np.newaxis, :]
     rhs = y[:, np.newaxis] * s_weights
