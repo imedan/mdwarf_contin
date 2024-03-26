@@ -147,7 +147,7 @@ def manipulate_model_spectra(loglam_sdss: np.ndarray,
     # assume some uniform distriubtion for SNR
     snr = np.random.uniform(low=5, high=60, size=size)
     for i in range(size):
-        flux_rand[i, :] = random_response(flux_rand[i, :], snr[i])
+        flux_rand[i, :] = add_noise(flux_rand[i, :], snr[i])
 
     # add the instrument response
     for i in range(size):
