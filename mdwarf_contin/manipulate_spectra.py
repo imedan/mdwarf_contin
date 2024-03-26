@@ -43,7 +43,8 @@ def add_reddening(loglam: np.ndarray, flux: np.ndarray,
     return flux_red
 
 
-def random_response(loglam: np.ndarray, flux: np.ndarray) -> np.ndarray:
+def random_response(loglam: np.ndarray, flux: np.ndarray,
+                    RNG: np.random._generator.Generator = np.random.default_rng(666)) -> np.ndarray:
     """
     Add random response to flux based on eigen vectors from
     difference spectra
@@ -56,6 +57,9 @@ def random_response(loglam: np.ndarray, flux: np.ndarray) -> np.ndarray:
     flux: np.array
         Flux of the spectrum
 
+    RNG: np.random._generator.Generator
+        random state
+
     Return
     ------
     flux_resp: np.array
@@ -63,9 +67,9 @@ def random_response(loglam: np.ndarray, flux: np.ndarray) -> np.ndarray:
     """
     for i in range(len(components)):
         if i == 0:
-            resp = components[i] * np.random.choice(X_projected[:, i], 1)[0]
+            resp = components[i] * RNG.choice(X_projected[:, i], 1)[0]
         else:
-            resp += components[i] * np.random.choice(X_projected[:, i], 1)[0]
+            resp += components[i] * RNG.choice(X_projected[:, i], 1)[0]
     # normalize data like difference spectra were
     mask = (7495 <= 10 ** loglam) * (10 ** loglam <= 7505)
     med = np.nanmedian(flux[mask])
@@ -73,7 +77,8 @@ def random_response(loglam: np.ndarray, flux: np.ndarray) -> np.ndarray:
     return flux_resp
 
 
-def add_noise(flux: np.ndarray, snr: float) -> np.ndarray:
+def add_noise(flux: np.ndarray, snr: float,
+              RNG: np.random._generator.Generator = np.random.default_rng(666)) -> np.ndarray:
     """
     Add nosie to signal
 
@@ -85,12 +90,15 @@ def add_noise(flux: np.ndarray, snr: float) -> np.ndarray:
     snr: float
         desired SNR for output
 
+    RNG: np.random._generator.Generator
+        random state
+
     Return
     ------
     flux_noise: np.array
         flux values with noise added
     """
-    flux_noise = np.random.normal(flux, flux / snr)
+    flux_noise = RNG.normal(flux, flux / snr)
     return flux_noise
 
 
@@ -98,7 +106,8 @@ def add_noise(flux: np.ndarray, snr: float) -> np.ndarray:
 def manipulate_model_spectra(loglam_sdss: np.ndarray,
                              loglam_model: np.ndarray,
                              flux_model: np.ndarray,
-                             size: int) -> Tuple[np.ndarray, np.ndarray]:
+                             size: int,
+                             RNG: np.random._generator.Generator = np.random.default_rng(666)) -> Tuple[np.ndarray, np.ndarray]:
     """
     Manipulate a model spectrum by by smoothing, downsampling
     adding reddening and instrument response
@@ -116,6 +125,9 @@ def manipulate_model_spectra(loglam_sdss: np.ndarray,
 
     size: int
         number of random spectra to return
+
+    RNG: np.random._generator.Generator
+        random state
 
     Returns
     -------
@@ -139,18 +151,18 @@ def manipulate_model_spectra(loglam_sdss: np.ndarray,
 
     # add redenning to the spectra
     P = np.array([1.5402553, -0.0009273592438195921, 0.27507633])  # fit to 1 kpc M dwarfs
-    av_rand = ss.lognorm.rvs(*P, size=size)
+    av_rand = ss.lognorm.rvs(*P, size=size, random_state=RNG)
     for i in range(size):
         flux_rand[i, :] = add_reddening(loglam_sdss, flux_smooth_down, av_rand[i])
 
     # add noise to the spectrum
     # assume some uniform distriubtion for SNR
-    snr = np.random.uniform(low=5, high=60, size=size)
+    snr = RNG.uniform(low=5, high=60, size=size)
     for i in range(size):
-        flux_rand[i, :] = add_noise(flux_rand[i, :], snr[i])
+        flux_rand[i, :] = add_noise(flux_rand[i, :], snr[i], RNG=RNG)
 
     # add the instrument response
     for i in range(size):
-        flux_rand[i, :] = random_response(loglam_sdss, flux_rand[i, :])
+        flux_rand[i, :] = random_response(loglam_sdss, flux_rand[i, :], RNG=RNG)
 
     return flux_rand, flux_smooth_down
