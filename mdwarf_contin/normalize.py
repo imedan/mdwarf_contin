@@ -69,7 +69,9 @@ def median_filt(x: np.ndarray, y: np.ndarray,
     for ind in range(len(xm)):
         xm[ind] = (x[ind * size] + x[(ind + 1) * size]) / 2
         ym[ind] = np.nanmedian(y[ind * size: (ind + 1) * size][mask[ind * size: (ind + 1) * size]])
-    return xm, ym
+    # remove any nans
+    ev = ~np.isnan(ym)
+    return xm[ev], ym[ev]
 
 
 def normalize_data(x: np.ndarray, y: np.ndarray,
