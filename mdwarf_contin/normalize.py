@@ -287,7 +287,7 @@ class ContinuumNormalize(object):
         the contimuum determined from fitting alpha shape max values
         with local polynomial regression
     """
-    def __init__(self, loglam: np.ndarray, flux: np.ndarray, size: int = 7,
+    def __init__(self, loglam: np.ndarray, flux: np.ndarray, size: int = 11,
                  alpha: float = 1 / 0.05, degree: int = 2, kernel: Callable = tricube,
                  radius: float = 0.2):
         try:
