@@ -6,7 +6,7 @@ from shapely import LineString, intersection, MultiLineString
 from localreg.rbf import tricube
 
 
-def local_sigma_clip(x: np.ndarray, window: int = 50,
+def local_sigma_clip(x: np.ndarray, window: int = 200,
                      sig: float = 5.) -> np.ndarray:
     """
     sigma clips in a moving window
