@@ -302,6 +302,10 @@ class ContinuumNormalize(object):
     radius: float
         smoothing parameter for local polynomial regression
 
+    sigma_clip: bool
+        Whether or not to sigma clip the flux data with a moving
+        before processing the continuum
+
     Attributes
     ----------
     loglam_norm: np.array
@@ -344,7 +348,7 @@ class ContinuumNormalize(object):
         self.kernel = kernel
         self.radius = radius
 
-        # get mask for sigma clipping
+        # get mask from sigma clipping
         if sigma_clip:
             self.mask = local_sigma_clip(self.flux)
         else:
