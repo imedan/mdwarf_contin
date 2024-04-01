@@ -345,7 +345,7 @@ class ContinuumNormalize(object):
 
         # median filter the normalized data
         self.loglam_med, self.flux_med = median_filt(self.loglam_norm, self.flux_norm,
-                                                     size=self.size)
+                                                     size=self.size, mask=self.mask)
 
     def find_continuum(self):
         """
