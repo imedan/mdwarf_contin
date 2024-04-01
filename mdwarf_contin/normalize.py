@@ -6,6 +6,35 @@ from shapely import LineString, intersection, MultiLineString
 from localreg.rbf import tricube
 
 
+def local_sigma_clip(x: np.ndarray, window: int = 50,
+                     sig: float = 5.) -> np.ndarray:
+    """
+    sigma clips in a moving window
+
+    Parameters
+    ----------
+    x: np.array
+        data to be cliped
+
+    window: int
+        size of the moving window
+
+    sig: float
+        sigma to clip at
+
+    Returns
+    -------
+    mask: np.array
+        boolean mask of points that pass clipping
+    """
+    mask = np.zeros(len(x), dtype=bool) + True
+    for i in range(window, len(x)):
+        med = np.nanmedian(x[i - window: i])
+        std = np.nanstd(x[i - window: i])
+        mask[i - window: i][abs(x[i - window: i] - med) > 5 * std] = False
+    return mask
+
+
 def median_filt(x: np.ndarray, y: np.ndarray,
                 size: int) -> Tuple[np.ndarray, np.ndarray]:
     """
