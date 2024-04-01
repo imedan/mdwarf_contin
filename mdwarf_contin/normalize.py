@@ -36,7 +36,7 @@ def local_sigma_clip(x: np.ndarray, window: int = 50,
 
 
 def median_filt(x: np.ndarray, y: np.ndarray,
-                size: int) -> Tuple[np.ndarray, np.ndarray]:
+                size: int, mask: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """
     Apply a median filter to a set of data.
     Returns the medians is bins equal to size along
@@ -53,6 +53,9 @@ def median_filt(x: np.ndarray, y: np.ndarray,
     size: int
         size of bins
 
+    mask: np.array
+        mask for the flux data
+
     Returns
     -------
     xm: np.array
@@ -65,7 +68,7 @@ def median_filt(x: np.ndarray, y: np.ndarray,
     ym = np.zeros(len(x) // size - 1)
     for ind in range(len(xm)):
         xm[ind] = (x[ind * size] + x[(ind + 1) * size]) / 2
-        ym[ind] = np.nanmedian(y[ind * size: (ind + 1) * size])
+        ym[ind] = np.nanmedian(y[ind * size: (ind + 1) * size][mask[ind * size: (ind + 1) * size]])
     return xm, ym
 
 
@@ -318,7 +321,7 @@ class ContinuumNormalize(object):
     """
     def __init__(self, loglam: np.ndarray, flux: np.ndarray, size: int = 11,
                  alpha: float = 1 / 0.05, degree: int = 2, kernel: Callable = tricube,
-                 radius: float = 0.2):
+                 radius: float = 0.2, sigma_clip: bool = True):
         try:
             self.loglam = np.array(loglam)
             self.flux = np.array(flux)
@@ -331,8 +334,14 @@ class ContinuumNormalize(object):
         self.kernel = kernel
         self.radius = radius
 
+        # get mask for sigma clipping
+        if sigma_clip:
+            self.mask = local_sigma_clip(self.flux)
+        else:
+            self.mask = np.zeros(len(self.flux), dtype=bool) + True
+
         # normalize the data
-        self.loglam_norm, self.flux_norm = normalize_data(self.loglam, self.flux)
+        self.loglam_norm, self.flux_norm = normalize_data(self.loglam[self.mask], self.flux[self.mask])
 
         # median filter the normalized data
         self.loglam_med, self.flux_med = median_filt(self.loglam_norm, self.flux_norm,
