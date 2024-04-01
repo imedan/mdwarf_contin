@@ -29,7 +29,7 @@ def local_sigma_clip(x: np.ndarray, window: int = 200,
     """
     mask = np.zeros(len(x), dtype=bool) + True
     for i in range(window, len(x)):
-        med = np.nanmedian(x[i - window: i])
+        med = np.nanmean(x[i - window: i])
         std = np.nanstd(x[i - window: i])
         mask[i - window: i][abs(x[i - window: i] - med) > 5 * std] = False
     return mask
