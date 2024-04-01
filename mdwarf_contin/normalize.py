@@ -72,7 +72,8 @@ def median_filt(x: np.ndarray, y: np.ndarray,
     return xm, ym
 
 
-def normalize_data(x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def normalize_data(x: np.ndarray, y: np.ndarray,
+                   mask: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """
     Normalize the data prior to calculating alpha shape
 
@@ -84,6 +85,9 @@ def normalize_data(x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray
     y: np.array
         flux data
 
+    mask: np.array
+        mask for the flux data
+
     Returns
     -------
     xn: np.array
@@ -92,12 +96,13 @@ def normalize_data(x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray
     yn: np.array
         flux data normalized
     """
-    xn = (x - np.nanmin(x)) / (np.nanmax(x) - np.nanmin(x))
-    yn = (y - np.nanmin(y)) / (np.nanmax(y) - np.nanmin(y))
+    xn = (x - np.nanmin(x[mask])) / (np.nanmax(x[mask]) - np.nanmin(x[mask]))
+    yn = (y - np.nanmin(y[mask])) / (np.nanmax(y[mask]) - np.nanmin(y[mask]))
     return xn, yn
 
 
-def un_normalize_data(x: np.ndarray, xn: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def un_normalize_data(x: np.ndarray, xn: np.ndarray,
+                      mask: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """
     Undo the normalize to the data
 
@@ -109,12 +114,15 @@ def un_normalize_data(x: np.ndarray, xn: np.ndarray) -> Tuple[np.ndarray, np.nda
     xn: np.array
         data normalized
 
+    mask: np.array
+        mask for the flux data
+
     Returns
     -------
     x0: np.array
         data unnormalized
     """
-    x0 = xn * (np.nanmax(x) - np.nanmin(x)) + np.nanmin(x)
+    x0 = xn * (np.nanmax(x[mask]) - np.nanmin(x[mask])) + np.nanmin(x[mask])
     return x0
 
 
@@ -341,7 +349,7 @@ class ContinuumNormalize(object):
             self.mask = np.zeros(len(self.flux), dtype=bool) + True
 
         # normalize the data
-        self.loglam_norm, self.flux_norm = normalize_data(self.loglam[self.mask], self.flux[self.mask])
+        self.loglam_norm, self.flux_norm = normalize_data(self.loglam, self.flux, self.mask)
 
         # median filter the normalized data
         self.loglam_med, self.flux_med = median_filt(self.loglam_norm, self.flux_norm,
