@@ -142,6 +142,12 @@ def manipulate_model_spectra(loglam_sdss: np.ndarray,
     flux_smooth_down: np.array
         the model flux that has been smoothed and downsampled.
         Noisy spectrum should be compared to this.
+
+    av_rand: np.array
+        random extinction A_V values added to spectra
+
+    snr: np.array
+        SNR applied to the spectrum
     """
     # smooth and downsample the spectrum
     flux_smooth = gaussian_filter1d(flux_model,
