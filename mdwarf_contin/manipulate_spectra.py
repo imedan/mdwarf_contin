@@ -107,7 +107,10 @@ def manipulate_model_spectra(loglam_sdss: np.ndarray,
                              loglam_model: np.ndarray,
                              flux_model: np.ndarray,
                              size: int,
-                             RNG: np.random._generator.Generator = np.random.default_rng(666)) -> Tuple[np.ndarray, np.ndarray]:
+                             RNG: np.random._generator.Generator = np.random.default_rng(666)) -> Tuple[np.ndarray,
+                                                                                                        np.ndarray,
+                                                                                                        np.ndarray,
+                                                                                                        np.ndarray]:
     """
     Manipulate a model spectrum by by smoothing, downsampling
     adding reddening and instrument response
@@ -165,4 +168,4 @@ def manipulate_model_spectra(loglam_sdss: np.ndarray,
     for i in range(size):
         flux_rand[i, :] = random_response(loglam_sdss, flux_rand[i, :], RNG=RNG)
 
-    return flux_rand, flux_smooth_down
+    return flux_rand, flux_smooth_down, av_rand, snr
