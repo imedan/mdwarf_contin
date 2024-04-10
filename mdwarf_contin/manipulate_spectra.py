@@ -44,7 +44,8 @@ def add_reddening(loglam: np.ndarray, flux: np.ndarray,
 
 
 def random_response(loglam: np.ndarray, flux: np.ndarray,
-                    RNG: np.random._generator.Generator = np.random.default_rng(666)) -> np.ndarray:
+                    RNG: np.random._generator.Generator = np.random.default_rng(666)) -> Tuple[np.ndarray,
+                                                                                               np.ndarray]:
     """
     Add random response to flux based on eigen vectors from
     difference spectra
@@ -64,17 +65,23 @@ def random_response(loglam: np.ndarray, flux: np.ndarray,
     ------
     flux_resp: np.array
         flux values with random response added
+
+    rand_weights: np.array
+        weights for each PCA component applied to the spectrum
     """
+    rand_weights = np.zeros(len(components))
     for i in range(len(components)):
         if i == 0:
-            resp = components[i] * RNG.choice(X_projected[:, i], 1)[0]
+            rand_weights[i] = RNG.choice(X_projected[:, i], 1)[0]
+            resp = components[i] * rand_weights[i]
         else:
-            resp += components[i] * RNG.choice(X_projected[:, i], 1)[0]
+            rand_weights[i] = RNG.choice(X_projected[:, i], 1)[0]
+            resp += components[i] * rand_weights[i]
     # normalize data like difference spectra were
     mask = (7495 <= 10 ** loglam) * (10 ** loglam <= 7505)
     med = np.nanmedian(flux[mask])
     flux_resp = (flux / med + resp) * med
-    return flux_resp
+    return flux_resp, rand_weights
 
 
 def add_noise(flux: np.ndarray, snr: float,
@@ -108,6 +115,7 @@ def manipulate_model_spectra(loglam_sdss: np.ndarray,
                              flux_model: np.ndarray,
                              size: int,
                              RNG: np.random._generator.Generator = np.random.default_rng(666)) -> Tuple[np.ndarray,
+                                                                                                        np.ndarray,
                                                                                                         np.ndarray,
                                                                                                         np.ndarray,
                                                                                                         np.ndarray]:
@@ -148,6 +156,9 @@ def manipulate_model_spectra(loglam_sdss: np.ndarray,
 
     snr: np.array
         SNR applied to the spectrum
+
+    rand_weights: np.array
+        weights for each PCA component applied to the spectrum
     """
     # smooth and downsample the spectrum
     flux_smooth = gaussian_filter1d(flux_model,
@@ -171,7 +182,8 @@ def manipulate_model_spectra(loglam_sdss: np.ndarray,
         flux_rand[i, :] = add_noise(flux_rand[i, :], snr[i], RNG=RNG)
 
     # add the instrument response
+    rand_weights = np.zeros((size, len(components)))
     for i in range(size):
-        flux_rand[i, :] = random_response(loglam_sdss, flux_rand[i, :], RNG=RNG)
+        flux_rand[i, :], rand_weights[i, :] = random_response(loglam_sdss, flux_rand[i, :], RNG=RNG)
 
-    return flux_rand, flux_smooth_down, av_rand, snr
+    return flux_rand, flux_smooth_down, av_rand, snr, rand_weights
