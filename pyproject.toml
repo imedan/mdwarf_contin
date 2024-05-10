@@ -12,10 +12,12 @@ alpha-shapes = "^1.1.0"
 shapely = "^2.0.3"
 localreg = "^0.5.0"
 astropy = "^6.0.0"
-matplotlib = "^3.8.3"
-extinction = "^0.4.6"
-specutils = "^1.13.0"
 
+
+[tool.poetry.group.extras.dependencies]
+matplotlib = "^3.8.4"
+specutils = "^1.15.0"
+extinction = "^0.4.6"
 
 [build-system]
 requires = ["poetry-core"]

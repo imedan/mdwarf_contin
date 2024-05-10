@@ -12,6 +12,13 @@ cd mdwarf_contin
 conda create -n "mdwarf_contin_code" python=3.10 ipython
 conda activate mdwarf_contin_code
 pip install poetry
+poetry install --without extras
+```
+
+If you want to install the extra dependencies needed to use features that manipulate model spectra 
+into SDSS-like spectra, then the extra dependencies must also be installed. This can be done by running:
+
+```
 poetry install
 ```
 
