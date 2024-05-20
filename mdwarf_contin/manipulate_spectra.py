@@ -111,7 +111,7 @@ def random_ivar(flux: np.ndarray, snr: float,
     """
     sn_bins = np.arange(5, 65, 5)
     for sn in range(len(sn_bins) - 1):
-        if snr >= sn_bins[sn] and snr < sn_bins[sn]:
+        if snr >= sn_bins[sn] and snr < sn_bins[sn + 1]:
             break
     components_ivar = ivar_pca[sn][0]
     X_projected_ivar = ivar_pca[sn][1]
