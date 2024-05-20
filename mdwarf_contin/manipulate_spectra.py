@@ -15,6 +15,9 @@ with open(open_binary('mdwarf_contin.response_data', 'pca_diff_spectra.pkl').nam
     components = res[0]
     X_projected = res[1]
 
+with open(open_binary('mdwarf_contin.response_data', 'pca_ivar.pkl').name, 'rb') as f:
+    ivar_pca = pickle.load(f)
+
 
 def add_reddening(loglam: np.ndarray, flux: np.ndarray,
                   av: float) -> np.ndarray:
@@ -84,6 +87,43 @@ def random_response(loglam: np.ndarray, flux: np.ndarray,
     return flux_resp, rand_weights
 
 
+def random_ivar(flux: np.ndarray, snr: float,
+                RNG: np.random._generator.Generator = np.random.default_rng(666)) -> np.ndarray:
+    """
+    Add random response to flux based on eigen vectors from
+    difference spectra
+
+    Parameters
+    ----------
+    flux: np.array
+        Flux of the spectrum
+
+    snr: float
+        desired SNR for output
+
+    RNG: np.random._generator.Generator
+        random state
+
+    Return
+    ------
+    ivar: np.array
+        The ivar for the spectrum given the snr
+    """
+    sn_bins = np.arange(5, 65, 5)
+    for sn in range(len(sn_bins) - 1):
+        if snr >= sn_bins[sn] and snr < sn_bins[sn]:
+            break
+    components_ivar = ivar_pca[sn][0]
+    X_projected_ivar = ivar_pca[sn][1]
+    for i in range(len(components_ivar)):
+        if i == 0:
+            ivar = components_ivar[i] * RNG.choice(X_projected_ivar[:, i], 1)[0]
+        else:
+            ivar += components_ivar[i] * RNG.choice(X_projected_ivar[:, i], 1)[0]
+    ivar = abs(ivar) * np.nansum(flux)
+    return ivar
+
+
 def add_noise(flux: np.ndarray, snr: float,
               RNG: np.random._generator.Generator = np.random.default_rng(666)) -> np.ndarray:
     """
@@ -114,11 +154,12 @@ def manipulate_model_spectra(loglam_sdss: np.ndarray,
                              loglam_model: np.ndarray,
                              flux_model: np.ndarray,
                              size: int,
-                             RNG: np.random._generator.Generator = np.random.default_rng(666)) -> Tuple[np.ndarray,
-                                                                                                        np.ndarray,
-                                                                                                        np.ndarray,
-                                                                                                        np.ndarray,
-                                                                                                        np.ndarray]:
+                             RNG: np.random._generator.Generator = np.random.default_rng(666),
+                             calc_ivar: bool = True) -> Tuple[np.ndarray,
+                                                              np.ndarray,
+                                                              np.ndarray,
+                                                              np.ndarray,
+                                                              np.ndarray]:
     """
     Manipulate a model spectrum by by smoothing, downsampling
     adding reddening and instrument response
@@ -140,12 +181,19 @@ def manipulate_model_spectra(loglam_sdss: np.ndarray,
     RNG: np.random._generator.Generator
         random state
 
+    calc_ivar: bool
+        whether or not to calculate the IVAR.
+
     Returns
     -------
     flux_rand: np.array
         Flux of the random manipulated model spectra.
         Flux is evaluated at loglam_sdss. Size of array will be
         (size, len(loglam_sdss)).
+
+    ivar_rand: np.array
+        The IVAR for the random spectrum based on SNR applied
+        to the spectrum.
 
     flux_smooth_down: np.array
         the model flux that has been smoothed and downsampled.
@@ -168,6 +216,7 @@ def manipulate_model_spectra(loglam_sdss: np.ndarray,
     flux_smooth_down = f_model(loglam_sdss)
 
     flux_rand = np.zeros((size, len(loglam_sdss)))
+    ivar_rand = np.zeros((size, len(loglam_sdss)))
 
     # add redenning to the spectra
     P = np.array([1.5402553, -0.0009273592438195921, 0.27507633])  # fit to 1 kpc M dwarfs
@@ -185,5 +234,7 @@ def manipulate_model_spectra(loglam_sdss: np.ndarray,
     rand_weights = np.zeros((size, len(components)))
     for i in range(size):
         flux_rand[i, :], rand_weights[i, :] = random_response(loglam_sdss, flux_rand[i, :], RNG=RNG)
+        if calc_ivar:
+            ivar_rand[i, :] = random_ivar(flux_rand[i, :], snr[i], RNG=RNG)
 
-    return flux_rand, flux_smooth_down, av_rand, snr, rand_weights
+    return flux_rand, ivar_rand, flux_smooth_down, av_rand, snr, rand_weights
