@@ -75,7 +75,8 @@ def median_filt(x: np.ndarray, y: np.ndarray,
 
 
 def normalize_data(x: np.ndarray, y: np.ndarray,
-                   mask: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+                   mask: np.ndarray,
+                   x_data_range: tuple = None, y_data_range: tuple = None) -> Tuple[np.ndarray, np.ndarray]:
     """
     Normalize the data prior to calculating alpha shape
 
@@ -90,6 +91,14 @@ def normalize_data(x: np.ndarray, y: np.ndarray,
     mask: np.array
         mask for the flux data
 
+    x_data_range: tuple
+        sets the min/max range for the data. If None, will use
+        min/max of data provided
+
+    y_data_range: tuple
+        sets the min/max range for the data. If None, will use
+        min/max of data provided
+
     Returns
     -------
     xn: np.array
@@ -98,13 +107,19 @@ def normalize_data(x: np.ndarray, y: np.ndarray,
     yn: np.array
         flux data normalized
     """
-    xn = (x - np.nanmin(x[mask])) / (np.nanmax(x[mask]) - np.nanmin(x[mask]))
-    yn = (y - np.nanmin(y[mask])) / (np.nanmax(y[mask]) - np.nanmin(y[mask]))
+    if x_data_range is None:
+        xn = (x - np.nanmin(x[mask])) / (np.nanmax(x[mask]) - np.nanmin(x[mask]))
+    else:
+        xn = (x - x_data_range[0]) / (x_data_range[1] - x_data_range[0])
+    if y_data_range is None:
+        yn = (y - np.nanmin(y[mask])) / (np.nanmax(y[mask]) - np.nanmin(y[mask]))
+    else:
+        yn = (y - y_data_range[0]) / (y_data_range[1] - y_data_range[0])
     return xn, yn
 
 
 def un_normalize_data(x: np.ndarray, xn: np.ndarray,
-                      mask: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+                      mask: np.ndarray, x_data_range: tuple = None) -> Tuple[np.ndarray, np.ndarray]:
     """
     Undo the normalize to the data
 
@@ -119,12 +134,19 @@ def un_normalize_data(x: np.ndarray, xn: np.ndarray,
     mask: np.array
         mask for the flux data
 
+    x_data_range: tuple
+        sets the min/max range for the data. If None, will use
+        min/max of data provided
+
     Returns
     -------
     x0: np.array
         data unnormalized
     """
-    x0 = xn * (np.nanmax(x[mask]) - np.nanmin(x[mask])) + np.nanmin(x[mask])
+    if x_data_range is None:
+        x0 = xn * (np.nanmax(x[mask]) - np.nanmin(x[mask])) + np.nanmin(x[mask])
+    else:
+        x0 = xn * (x_data_range[1] - x_data_range[0]) + x_data_range[0]
     return x0
 
 
@@ -306,6 +328,14 @@ class ContinuumNormalize(object):
         Whether or not to sigma clip the flux data with a moving
         before processing the continuum
 
+    loglam_range: tuple
+        sets the min/max range for scaling the spectrum. If None,
+        will use min/max of loglam provided
+
+    flux_range: tuple
+        sets the min/max range for scaling the spectrum. If None,
+        will use min/max of flux provided
+
     Attributes
     ----------
     loglam_norm: np.array
@@ -335,7 +365,8 @@ class ContinuumNormalize(object):
     """
     def __init__(self, loglam: np.ndarray, flux: np.ndarray, size: int = 13,
                  alpha: float = 8.567567567567567, degree: int = 2, kernel: Callable = tricube,
-                 radius: float = 0.3722972972972973, sigma_clip: bool = True):
+                 radius: float = 0.3722972972972973, sigma_clip: bool = True,
+                 loglam_range: tuple = (3.6001, 4.017), flux_range: tuple = None):
         try:
             self.loglam = np.array(loglam)
             self.flux = np.array(flux)
@@ -347,6 +378,8 @@ class ContinuumNormalize(object):
         self.degree = degree
         self.kernel = kernel
         self.radius = radius
+        self.loglam_range = loglam_range
+        self.flux_range = flux_range
 
         # get mask from sigma clipping
         if sigma_clip:
@@ -355,7 +388,9 @@ class ContinuumNormalize(object):
             self.mask = np.zeros(len(self.flux), dtype=bool) + True
 
         # normalize the data
-        self.loglam_norm, self.flux_norm = normalize_data(self.loglam, self.flux, self.mask)
+        self.loglam_norm, self.flux_norm = normalize_data(self.loglam, self.flux,
+                                                          self.mask, x_data_range=self.loglam_range,
+                                                          y_data_range=self.flux_range)
 
         # median filter the normalized data
         self.loglam_med, self.flux_med = median_filt(self.loglam_norm, self.flux_norm,
