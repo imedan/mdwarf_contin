@@ -214,14 +214,14 @@ def max_intersect(alpha_shape: Polygon) -> Tuple[np.ndarray, np.ndarray]:
     for i in range(len(xa)):
         try:
             line = LineString([(xa[i], 0),
-                               (xa[i], 1)])
+                               (xa[i], 100)])
             xy = intersection(line, alpha_shape).xy
             xi = xy[0]
             yi = xy[1]
             if yi[np.argmax(yi)] == ya[i]:
                 xmax.append(xa[i])
                 ymax.append(ya[i])
-        except NotImplementedError:
+        except (ValueError, NotImplementedError) as error:
             pass
     return np.array(xmax), np.array(ymax)
 
@@ -336,6 +336,11 @@ class ContinuumNormalize(object):
         sets the min/max range for scaling the spectrum. If None,
         will use min/max of flux provided
 
+    aspect_ratio: float
+        this will set the flux_range for a given aspect ratio.
+        This is done on the median filter of the spectrum. Aspect
+        ratio is defined as the normalized flux range / normalized loglam range
+
     Attributes
     ----------
     loglam_norm: np.array
@@ -366,7 +371,8 @@ class ContinuumNormalize(object):
     def __init__(self, loglam: np.ndarray, flux: np.ndarray, size: int = 13,
                  alpha: float = 8.567567567567567, degree: int = 2, kernel: Callable = tricube,
                  radius: float = 0.3722972972972973, sigma_clip: bool = True,
-                 loglam_range: tuple = (3.6001, 4.017), flux_range: tuple = None):
+                 loglam_range: tuple = (3.6001, 4.017), flux_range: tuple = None,
+                 aspect_ratio: float = None):
         try:
             self.loglam = np.array(loglam)
             self.flux = np.array(flux)
@@ -380,6 +386,7 @@ class ContinuumNormalize(object):
         self.radius = radius
         self.loglam_range = loglam_range
         self.flux_range = flux_range
+        self.aspect_ratio = aspect_ratio
 
         # get mask from sigma clipping
         if sigma_clip:
@@ -387,14 +394,31 @@ class ContinuumNormalize(object):
         else:
             self.mask = np.zeros(len(self.flux), dtype=bool) + True
 
+        # median filter the spectrum
+        self.loglam_med, self.flux_med = median_filt(self.loglam, self.flux,
+                                                     size=self.size, mask=self.mask)
+
+        # get flux_range if aspect ratio set
+        if aspect_ratio is not None:
+            norm_fact = ((np.nanmax(self.flux_med) - np.nanmin(self.flux_med)) / self.aspect_ratio + np.nanmin(self.flux_med)) / np.nanmax(self.flux_med)
+            self.flux_range = (np.nanmin(self.flux_med), np.nanmax(self.flux_med) * norm_fact)
+
+        # set ranges based on max if None
+        if self.loglam_range is None:
+            self.loglam_range = (np.nanmin(self.loglam[self.mask]), np.nanmax(self.loglam[self.mask]))
+        if self.flux_range is None:
+            self.flux_range = (np.nanmin(self.flux[self.mask]), np.nanmax(self.flux[self.mask]))   
+
         # normalize the data
         self.loglam_norm, self.flux_norm = normalize_data(self.loglam, self.flux,
                                                           self.mask, x_data_range=self.loglam_range,
                                                           y_data_range=self.flux_range)
 
-        # median filter the normalized data
-        self.loglam_med, self.flux_med = median_filt(self.loglam_norm, self.flux_norm,
-                                                     size=self.size, mask=self.mask)
+        # normalize data the median filter data
+        self.loglam_med, self.flux_med = normalize_data(self.loglam_med, self.flux_med,
+                                                        np.zeros(len(self.loglam_med), dtype=bool) + True,
+                                                        x_data_range=self.loglam_range,
+                                                        y_data_range=self.flux_range)
 
     def find_continuum(self):
         """
