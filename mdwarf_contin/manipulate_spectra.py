@@ -9,14 +9,14 @@ from scipy.interpolate import interp1d
 import scipy.stats as ss
 
 
-# get PCA data
-with open(open_binary('mdwarf_contin.response_data', 'pca_diff_spectra.pkl').name, 'rb') as f:
-    res = pickle.load(f)
-    components = res[0]
-    X_projected = res[1]
+# get response data
+resp = np.load(open_binary('mdwarf_contin.response_data', 'resp_PCA_results.npz').name)
+mean_resp = resp['mean']
+cov_resp = resp['cov']
+components = resp['components']
 
-with open(open_binary('mdwarf_contin.response_data', 'pca_ivar.pkl').name, 'rb') as f:
-    ivar_pca = pickle.load(f)
+with open(open_binary('mdwarf_contin.response_data', 'ivar_RF_model.pkl').name, 'rb') as f:
+    rf_ivar = pickle.load(f)
 
 
 def add_reddening(loglam: np.ndarray, flux: np.ndarray,
@@ -72,13 +72,11 @@ def random_response(loglam: np.ndarray, flux: np.ndarray,
     rand_weights: np.array
         weights for each PCA component applied to the spectrum
     """
-    rand_weights = np.zeros(len(components))
+    rand_weights = RNG.multivariate_normal(mean_resp, cov_resp)
     for i in range(len(components)):
         if i == 0:
-            rand_weights[i] = RNG.choice(X_projected[:, i], 1)[0]
             resp = components[i] * rand_weights[i]
         else:
-            rand_weights[i] = RNG.choice(X_projected[:, i], 1)[0]
             resp += components[i] * rand_weights[i]
     # normalize data like difference spectra were
     mask = (7495 <= 10 ** loglam) * (10 ** loglam <= 7505)
@@ -87,7 +85,7 @@ def random_response(loglam: np.ndarray, flux: np.ndarray,
     return flux_resp, rand_weights
 
 
-def random_ivar(flux: np.ndarray, snr: float,
+def random_ivar(loglam: np.ndarray, flux: np.ndarray,
                 RNG: np.random._generator.Generator = np.random.default_rng(666)) -> np.ndarray:
     """
     Add random response to flux based on eigen vectors from
@@ -109,18 +107,10 @@ def random_ivar(flux: np.ndarray, snr: float,
     ivar: np.array
         The ivar for the spectrum given the snr
     """
-    sn_bins = np.arange(5, 65, 5)
-    for sn in range(len(sn_bins) - 1):
-        if snr >= sn_bins[sn] and snr < sn_bins[sn + 1]:
-            break
-    components_ivar = ivar_pca[sn][0]
-    X_projected_ivar = ivar_pca[sn][1]
-    for i in range(len(components_ivar)):
-        if i == 0:
-            ivar = components_ivar[i] * RNG.choice(X_projected_ivar[:, i], 1)[0]
-        else:
-            ivar += components_ivar[i] * RNG.choice(X_projected_ivar[:, i], 1)[0]
-    ivar = abs(ivar) * np.nansum(flux)
+    mask = (7495 <= 10 ** loglam) * (10 ** loglam <= 7505)
+    med = np.nanmedian(flux[mask])
+    ivar = rf_ivar.predict(flux.reshape(-1, 1).T / med)
+    ivar = ivar / med ** 2
     return ivar
 
 
@@ -235,6 +225,6 @@ def manipulate_model_spectra(loglam_sdss: np.ndarray,
     for i in range(size):
         flux_rand[i, :], rand_weights[i, :] = random_response(loglam_sdss, flux_rand[i, :], RNG=RNG)
         if calc_ivar:
-            ivar_rand[i, :] = random_ivar(flux_rand[i, :], snr[i], RNG=RNG)
+            ivar_rand[i, :] = random_ivar(loglam_sdss, flux_rand[i, :], RNG=RNG)
 
     return flux_rand, ivar_rand, flux_smooth_down, av_rand, snr, rand_weights
