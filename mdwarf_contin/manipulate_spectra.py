@@ -17,6 +17,10 @@ components = resp['components']
 
 with open(open_binary('mdwarf_contin.response_data', 'ivar_RF_model.pkl').name, 'rb') as f:
     rf_ivar = pickle.load(f)
+    # turn off verbose
+    rf_ivar.verbose = 0
+    # only use 1 core
+    rf_ivar.n_jobs = 1
 
 
 def add_reddening(loglam: np.ndarray, flux: np.ndarray,
