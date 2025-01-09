@@ -3,7 +3,7 @@ import numpy as np
 from alpha_shapes import Alpha_Shaper, plot_alpha_shape
 from shapely.geometry.polygon import Polygon
 from shapely import LineString, intersection, MultiLineString
-from localreg.rbf import tricube
+from localreg.rbf import gaussian
 
 
 def local_sigma_clip(x: np.ndarray, window: int = 200,
@@ -228,7 +228,7 @@ def max_intersect(alpha_shape: Polygon) -> Tuple[np.ndarray, np.ndarray]:
 
 def localreg(x: np.ndarray, y: np.ndarray,
              x0: np.ndarray = None, degree: int = 2,
-             kernel: Callable = tricube, radius: float = 1.) -> np.ndarray:
+             kernel: Callable = gaussian, radius: float = 1.) -> np.ndarray:
     """
     rewrote localreg (https://github.com/sigvaldm/localreg/tree/master) function
     to improve speed
@@ -369,10 +369,10 @@ class ContinuumNormalize(object):
         with local polynomial regression
     """
     def __init__(self, loglam: np.ndarray, flux: np.ndarray, size: int = 13,
-                 alpha: float = 15.33677558, degree: int = 4, kernel: Callable = tricube,
-                 radius: float = 0.2615993, sigma_clip: bool = True,
+                 alpha: float = 13.584886, degree: int = 3, kernel: Callable = gaussian,
+                 radius: float = 0.158403, sigma_clip: bool = True,
                  loglam_range: tuple = (3.6001, 4.017), flux_range: tuple = None,
-                 aspect_ratio: float = 1.14116734):
+                 aspect_ratio: float = 1.259231):
         try:
             self.loglam = np.array(loglam)
             self.flux = np.array(flux)
