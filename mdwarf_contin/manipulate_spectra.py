@@ -7,6 +7,7 @@ import pickle
 from scipy.ndimage import gaussian_filter1d
 from scipy.interpolate import interp1d
 import scipy.stats as ss
+import warnings
 
 
 # get response data
@@ -15,12 +16,19 @@ mean_resp = resp['mean']
 cov_resp = resp['cov']
 components = resp['components']
 
-with open(open_binary('mdwarf_contin.response_data', 'ivar_RF_model.pkl').name, 'rb') as f:
-    rf_ivar = pickle.load(f)
-    # turn off verbose
-    rf_ivar.verbose = 0
-    # only use 1 core
-    rf_ivar.n_jobs = 1
+try:
+    with open(open_binary('mdwarf_contin.response_data', 'ivar_RF_model.pkl').name, 'rb') as f:
+        rf_ivar = pickle.load(f)
+        # turn off verbose
+        rf_ivar.verbose = 0
+        # only use 1 core
+        rf_ivar.n_jobs = 1
+except FileNotFoundError:
+    rf_ivar = None
+    warn_message = ('File ivar_RF_model.pkl not in mdwarf_contin.response_data. '
+                    'Cannot simulate errors for SDSS-like spectra.')
+    warnings.warn(warn_message)
+
 
 
 def add_reddening(loglam: np.ndarray, flux: np.ndarray,
@@ -111,6 +119,10 @@ def random_ivar(loglam: np.ndarray, flux: np.ndarray,
     ivar: np.array
         The ivar for the spectrum given the snr
     """
+    if rf_ivar is None:
+        message = ('File ivar_RF_model.pkl not in mdwarf_contin.response_data. '
+                   'Cannot simulate errors for SDSS-like spectra.')
+        raise FileNotFoundError(message)
     mask = (7495 <= 10 ** loglam) * (10 ** loglam <= 7505)
     med = np.nanmedian(flux[mask])
     ivar = rf_ivar.predict(flux.reshape(-1, 1).T / med)
@@ -202,6 +214,13 @@ def manipulate_model_spectra(loglam_sdss: np.ndarray,
     rand_weights: np.array
         weights for each PCA component applied to the spectrum
     """
+    # check if RF model exists
+    if rf_ivar is None:
+        calc_ivar = False
+        warn_message = ('File ivar_RF_model.pkl not in mdwarf_contin.response_data. '
+                        'Cannot simulate errors for SDSS-like spectra.')
+        warnings.warn(warn_message)
+
     # smooth and downsample the spectrum
     flux_smooth = gaussian_filter1d(flux_model,
                                     (10 ** loglam_sdss[1] - 10 ** loglam_sdss[0]) /
