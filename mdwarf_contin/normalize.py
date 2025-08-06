@@ -6,7 +6,8 @@ from shapely import LineString, intersection, MultiLineString
 from localreg.rbf import gaussian
 
 
-def local_sigma_clip(x: np.ndarray, window: int = 200,
+def local_sigma_clip(x: np.ndarray, y: np.ndarray, x_range: tuple,
+                     window: float = 200e-4,
                      sig: float = 5.) -> np.ndarray:
     """
     sigma clips in a moving window
@@ -14,10 +15,16 @@ def local_sigma_clip(x: np.ndarray, window: int = 200,
     Parameters
     ----------
     x: np.array
-        data to be cliped
+        data where the binning will be done along
+
+    y: np.array
+        data to take median of
+    
+    x_range: np.array
+        range of the data considered
 
     window: int
-        size of the moving window
+        size of the moving window (units of x)
 
     sig: float
         sigma to clip at
@@ -28,14 +35,18 @@ def local_sigma_clip(x: np.ndarray, window: int = 200,
         boolean mask of points that pass clipping
     """
     mask = np.zeros(len(x), dtype=bool) + True
-    for i in range(window, len(x)):
-        med = np.nanmean(x[i - window: i])
-        std = np.nanstd(x[i - window: i])
-        mask[i - window: i][abs(x[i - window: i] - med) > 5 * std] = False
+    for i in range(len(x)):
+        try:
+            iend = np.where(x > x[i] + window)[0][0]
+        except IndexError:
+            iend = len(x)
+        med = np.nanmean(x[i: iend])
+        std = np.nanstd(x[i: iend])
+        mask[i: iend][abs(x[i: iend] - med) > 5 * std] = False
     return mask
 
 
-def median_filt(x: np.ndarray, y: np.ndarray, loglam_range: tuple,
+def median_filt(x: np.ndarray, y: np.ndarray, x_range: tuple,
                 size: float, mask: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """
     Apply a median filter to a set of data.
@@ -49,9 +60,12 @@ def median_filt(x: np.ndarray, y: np.ndarray, loglam_range: tuple,
 
     y: np.array
         data to take median of
+    
+    x_range: np.array
+        range of the data considered
 
     size: float
-        size of bins in log(Angstroms)
+        size of bins in (units of x)
 
     mask: np.array
         mask for the flux data
@@ -64,7 +78,7 @@ def median_filt(x: np.ndarray, y: np.ndarray, loglam_range: tuple,
     ym: np.array
         median in each of the x bins
     """
-    bin_edges = np.arange(loglam_range[0], loglam_range[1] + size, size)
+    bin_edges = np.arange(x_range[0], x_range[1] + size, size)
     xm = np.zeros(len(bin_edges) - 1) + np.nan
     ym = np.zeros(len(bin_edges) - 1) + np.nan
     for ind in range(len(xm)):
