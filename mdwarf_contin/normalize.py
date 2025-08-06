@@ -411,12 +411,13 @@ class ContinuumNormalize(object):
 
         # get mask from sigma clipping
         if sigma_clip:
-            self.mask = local_sigma_clip(self.flux)
+            self.mask = local_sigma_clip(self.loglam, self.flux, self.loglam_range)
         else:
             self.mask = np.zeros(len(self.flux), dtype=bool) + True
 
         # median filter the spectrum
         self.loglam_med, self.flux_med = median_filt(self.loglam, self.flux,
+                                                     self.loglam_range,
                                                      size=self.size, mask=self.mask)
 
         # get flux_range if aspect ratio set
