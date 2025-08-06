@@ -448,6 +448,10 @@ class ContinuumNormalize(object):
         self.alpha_shape = calculate_alpha_shape(self.loglam_med, self.flux_med,
                                                  alpha=self.alpha)
         self.loglam_max, self.flux_max = max_intersect(self.alpha_shape)
-        self.continuum = localreg(self.loglam_max, self.flux_max,
-                                  x0=self.loglam_norm, degree=self.degree,
-                                  kernel=self.kernel, radius=self.radius)
+        self.continuum_norm = localreg(self.loglam_max, self.flux_max,
+                                       x0=self.loglam_norm, degree=self.degree,
+                                       kernel=self.kernel, radius=self.radius)
+        self.continuum = un_normalize_data(self.flux,
+                                           self.continuum_norm,
+                                           self.mask,
+                                           x_data_range=self.flux_range)
