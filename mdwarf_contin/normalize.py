@@ -35,8 +35,8 @@ def local_sigma_clip(x: np.ndarray, window: int = 200,
     return mask
 
 
-def median_filt(x: np.ndarray, y: np.ndarray,
-                size: int, mask: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def median_filt(x: np.ndarray, y: np.ndarray, loglam_range: tuple,
+                size: float, mask: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """
     Apply a median filter to a set of data.
     Returns the medians is bins equal to size along
@@ -50,8 +50,8 @@ def median_filt(x: np.ndarray, y: np.ndarray,
     y: np.array
         data to take median of
 
-    size: int
-        size of bins
+    size: float
+        size of bins in log(Angstroms)
 
     mask: np.array
         mask for the flux data
@@ -64,11 +64,14 @@ def median_filt(x: np.ndarray, y: np.ndarray,
     ym: np.array
         median in each of the x bins
     """
-    xm = np.zeros(len(x) // size - 1)
-    ym = np.zeros(len(x) // size - 1)
+    bin_edges = np.arange(loglam_range[0], loglam_range[1] + size, size)
+    xm = np.zeros(len(bin_edges) - 1) + np.nan
+    ym = np.zeros(len(bin_edges) - 1) + np.nan
     for ind in range(len(xm)):
-        xm[ind] = (x[ind * size] + x[(ind + 1) * size]) / 2
-        ym[ind] = np.nanmedian(y[ind * size: (ind + 1) * size][mask[ind * size: (ind + 1) * size]])
+        xm[ind] = (bin_edges[ind] + bin_edges[ind + 1]) / 2
+        ev = (x >= bin_edges[ind]) & (x < bin_edges[ind + 1])
+        if np.sum(ev & mask) > 0:
+            ym[ind] = np.nanmedian(y[ev & mask])
     # remove any nans
     ev = ~np.isnan(ym)
     return xm[ev], ym[ev]
@@ -309,8 +312,8 @@ class ContinuumNormalize(object):
     flux: np.array
         Flux of the spectrum
 
-    size: int
-        size of the bins (in indicies) for the median filtering
+    size: float
+        size of the bins (in log(Angstroms)) for the median filtering
 
     alpha: float
         alpha size for alpha hulling
@@ -368,7 +371,7 @@ class ContinuumNormalize(object):
         the contimuum determined from fitting alpha shape max values
         with local polynomial regression
     """
-    def __init__(self, loglam: np.ndarray, flux: np.ndarray, size: int = 13,
+    def __init__(self, loglam: np.ndarray, flux: np.ndarray, size: int = 13e-14,
                  alpha: float = 13.584886, degree: int = 3, kernel: Callable = gaussian,
                  radius: float = 0.158403, sigma_clip: bool = True,
                  loglam_range: tuple = (3.6001, 4.017), flux_range: tuple = None,
@@ -388,6 +391,10 @@ class ContinuumNormalize(object):
         self.flux_range = flux_range
         self.aspect_ratio = aspect_ratio
 
+        # set ranges based on max if None
+        if self.loglam_range is None:
+            self.loglam_range = (np.nanmin(self.loglam), np.nanmax(self.loglam))
+
         # get mask from sigma clipping
         if sigma_clip:
             self.mask = local_sigma_clip(self.flux)
@@ -404,8 +411,6 @@ class ContinuumNormalize(object):
             self.flux_range = (np.nanmin(self.flux_med), np.nanmax(self.flux_med) * norm_fact)
 
         # set ranges based on max if None
-        if self.loglam_range is None:
-            self.loglam_range = (np.nanmin(self.loglam[self.mask]), np.nanmax(self.loglam[self.mask]))
         if self.flux_range is None:
             self.flux_range = (np.nanmin(self.flux[self.mask]), np.nanmax(self.flux[self.mask]))   
 
