@@ -155,11 +155,98 @@ def add_noise(flux: np.ndarray, snr: float,
     return flux_noise
 
 
+ckms = 2.998e5
+sigma_to_fwhm = 2.355
+
+def smooth_spec(wave: np.ndarray,
+                spec: np.ndarray,
+                outwave: np.ndarray,
+                resolution: float,
+                nsigma: float = 10,
+                inres: float = 0):
+    """
+    Smooth a spectrum to a constant resolution R.
+
+    Below code is largle from the Payne, with license:
+
+    The MIT License (MIT)
+
+    Copyright (c) 2018 - Present: Phillip Cargile and contributors.
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+
+    Parameters
+    ----------
+    wave: np.array
+        Wavelength vector of the input spectrum (Angstroms).
+    spec: np.array
+        Flux vector of the input spectrum.
+    outwave: np.array
+        Desired output wavelength vector (Angstroms).
+    resolution: float
+        Desired resolving power, R, defined as lambda / delta_lambda
+    nsigma: float
+        Number of sigma away from the output wavelength to consider in the
+        integral.  If less than zero, all wavelengths are used.  Setting this
+        to some positive number decreses the scaling constant in the O(N_out *
+        N_in) algorithm used here.
+    inres: float
+        The velocity resolution of the input spectrum (km/s), *not* FWHM.
+    
+    Returns
+    --------
+    flux: np.array
+        Flux vector of the output spectrum at resolution R
+    """
+    Rsigma = resolution
+    sigma = ckms / Rsigma
+    fwhm = sigma * sigma_to_fwhm
+    R = ckms / fwhm
+    width = Rsigma
+
+    sigma_eff_sq = sigma**2 - inres**2
+    if np.any(sigma_eff_sq) < 0.0:
+        raise ValueError("Desired velocity resolution smaller than the value"
+                         "possible for this input spectrum.".format(inres))
+    # sigma_eff is in units of sigma_lambda / lambda
+    sigma_eff = np.sqrt(sigma_eff_sq) / ckms
+
+    lnwave = np.log(wave)
+    flux = np.zeros(len(outwave))
+    for i, w in enumerate(outwave):
+        x = (np.log(w) - lnwave) / sigma_eff
+        if nsigma > 0:
+            good = np.abs(x) < nsigma
+            x = x[good]
+            _spec = spec[good]
+        else:
+            _spec = spec
+        f = np.exp(-0.5 * x ** 2)
+        flux[i] = np.trapz(f * _spec, x) / np.trapz(f, x)
+    return flux
+
 
 def manipulate_model_spectra(loglam_sdss: np.ndarray,
                              loglam_model: np.ndarray,
                              flux_model: np.ndarray,
                              size: int,
+                             resolution: float = 2000,
                              RNG: np.random._generator.Generator = np.random.default_rng(666),
                              calc_ivar: bool = True) -> Tuple[np.ndarray,
                                                               np.ndarray,
@@ -183,6 +270,9 @@ def manipulate_model_spectra(loglam_sdss: np.ndarray,
 
     size: int
         number of random spectra to return
+
+    resolution: float
+        Desired resolving power, R, defined as lambda / delta_lambda
 
     RNG: np.random._generator.Generator
         random state
@@ -222,11 +312,10 @@ def manipulate_model_spectra(loglam_sdss: np.ndarray,
         warnings.warn(warn_message)
 
     # smooth and downsample the spectrum
-    flux_smooth = gaussian_filter1d(flux_model,
-                                    (10 ** loglam_sdss[1] - 10 ** loglam_sdss[0]) /
-                                    (10 ** loglam_model[1] - 10 ** loglam_model[0]) / 3)
-    f_model = interp1d(loglam_model, flux_smooth)
-    flux_smooth_down = f_model(loglam_sdss)
+    flux_smooth_down = smooth_spec(10 ** loglam_model,
+                                   flux_model,
+                                   10 ** loglam_sdss,
+                                   resolution)
 
     flux_rand = np.zeros((size, len(loglam_sdss)))
     ivar_rand = np.zeros((size, len(loglam_sdss)))
