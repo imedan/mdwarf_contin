@@ -170,7 +170,7 @@ def smooth_spec(wave: np.ndarray,
                 outwave: np.ndarray,
                 resolution: float,
                 nsigma: float = 10,
-                inres: float = 0):
+                inres: float = 0) -> np.ndarray:
     """
     Smooth a spectrum to a constant resolution R.
 
