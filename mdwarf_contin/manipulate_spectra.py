@@ -167,7 +167,7 @@ def smooth_spec(wave: np.ndarray,
     """
     Smooth a spectrum to a constant resolution R.
 
-    Below code is largle from the Payne, with license:
+    Below code is largely from the Payne, with license:
 
     The MIT License (MIT)
 
