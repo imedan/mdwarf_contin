@@ -1,5 +1,4 @@
 from typing import Tuple
-from extinction import ccm89, apply
 import numpy as np
 import astropy.units as u
 from importlib.resources import open_binary
@@ -8,6 +7,14 @@ from scipy.ndimage import gaussian_filter1d
 from scipy.interpolate import interp1d
 import scipy.stats as ss
 import warnings
+
+# below is extra dependency
+try:
+    from extinction import ccm89, apply
+except ModuleNotFoundError:
+    warn_message = ('Extra dependecy extinction not installed.'
+                    'Will not have full functionality.')
+    warnings.warn(warn_message)
 
 
 # get response data
