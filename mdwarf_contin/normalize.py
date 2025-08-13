@@ -386,10 +386,10 @@ class ContinuumNormalize(object):
         with local polynomial regression
     """
     def __init__(self, loglam: np.ndarray, flux: np.ndarray, size: int = 13e-4,
-                 alpha: float = 13.584886, degree: int = 3, kernel: Callable = gaussian,
-                 radius: float = 0.158403, sigma_clip: bool = True,
+                 alpha: float = 12.477607, degree: int = 3, kernel: Callable = gaussian,
+                 radius: float = 0.160439, sigma_clip: bool = True,
                  loglam_range: tuple = (3.6001, 4.017), flux_range: tuple = None,
-                 aspect_ratio: float = 1.259231):
+                 aspect_ratio: float = 1.533087):
         try:
             self.loglam = np.array(loglam)
             self.flux = np.array(flux)
