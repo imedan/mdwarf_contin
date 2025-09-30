@@ -4,6 +4,7 @@ version = "1.0.0"
 description = ""
 authors = ["imedan <ilija.medan@vanderbilt.edu>"]
 readme = "README.md"
+exclude = ["mdwarf_contin/response_data/ivar_RF_model.pkl", "tests/"]
 
 [tool.poetry.dependencies]
 python = "^3.10"
