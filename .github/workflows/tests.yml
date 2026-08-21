@@ -1,0 +1,67 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  # 3.10 is the minimum supported by pyproject.toml (python = "^3.10").
+  # 3.11-3.13 are the newer versions still covered by that constraint for
+  # which numpy/astropy/shapely/scipy currently ship wheels; 3.14 is
+  # excluded since those still build from source there.
+  test-py310:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install poetry
+        run: pipx install poetry
+      - name: Install dependencies (no extras)
+        run: poetry install --without extras --no-interaction
+      - name: Run tests
+        run: poetry run pytest tests/test_normalize.py -v
+
+  test-py311:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install poetry
+        run: pipx install poetry
+      - name: Install dependencies (no extras)
+        run: poetry install --without extras --no-interaction
+      - name: Run tests
+        run: poetry run pytest tests/test_normalize.py -v
+
+  test-py312:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install poetry
+        run: pipx install poetry
+      - name: Install dependencies (no extras)
+        run: poetry install --without extras --no-interaction
+      - name: Run tests
+        run: poetry run pytest tests/test_normalize.py -v
+
+  test-py313:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install poetry
+        run: pipx install poetry
+      - name: Install dependencies (no extras)
+        run: poetry install --without extras --no-interaction
+      - name: Run tests
+        run: poetry run pytest tests/test_normalize.py -v
